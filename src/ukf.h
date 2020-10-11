@@ -4,23 +4,19 @@
 #include "Eigen/Dense"
 #include "measurement_package.h"
 
-class UKF {
- public:
-  /**
-   * Constructor
-   */
-  UKF();
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
-  /**
-   * Destructor
-   */
+class UKF {
+public:
+  UKF();
   virtual ~UKF();
 
   /**
    * ProcessMeasurement
    * @param meas_package The latest measurement data of either radar or laser
    */
-  void ProcessMeasurement(MeasurementPackage meas_package);
+  void ProcessMeasurement(const MeasurementPackage& meas_package);
 
   /**
    * Prediction Predicts sigma points, the state, and the state covariance
@@ -28,19 +24,27 @@ class UKF {
    * @param delta_t Time between k and k+1 in s
    */
   void Prediction(double delta_t);
+  MatrixXd AugmentationAndSigmaPointsGeneration(const VectorXd& x, const MatrixXd& P);
+  MatrixXd SigmaPointsPrediction(const MatrixXd& Xsig_aug, double delta_t);
+  void UKFPredict(const MatrixXd& Xsig_pred, VectorXd& x_out, MatrixXd& P_out);
 
   /**
    * Updates the state and the state covariance matrix using a laser measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateLidar(MeasurementPackage meas_package);
+  void UpdateLidar(const MeasurementPackage& meas_package);
 
   /**
    * Updates the state and the state covariance matrix using a radar measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateRadar(MeasurementPackage meas_package);
+  void UpdateRadar(const MeasurementPackage& meas_package);
+  void PredictRadarMeasurements(MatrixXd& Zsig, VectorXd& z_pred, MatrixXd& S);
 
+  // common functions
+  void UKFUpdate(const MatrixXd& Zsig, const VectorXd& z_pred, const MatrixXd& S,
+                 const VectorXd& z, VectorXd& x, MatrixXd& P);
+  double NormalizeAngle(double angle_rad);
 
   // initially set to false, set to true in first call of ProcessMeasurement
   bool is_initialized_;
@@ -95,6 +99,19 @@ class UKF {
 
   // Sigma point spreading parameter
   double lambda_;
+
+  // radar measurement dimension
+  int n_z_radar = 3;
+  int n_z_lidar = 2;
+
+  // radar measurement noise covariance matrix
+  MatrixXd R_radar_;
+
+  // lidar measurement model H_
+  MatrixXd H_lidar_;
+
+  // lidar measurement noise covariance matrix
+  MatrixXd R_lidar_;
 };
 
 #endif  // UKF_H

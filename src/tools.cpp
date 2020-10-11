@@ -23,6 +23,7 @@ lmarker Tools::lidarSense(Car& car, pcl::visualization::PCLVisualizer::Ptr& view
     meas_package.sensor_type_ = MeasurementPackage::LASER;
     meas_package.raw_measurements_ = VectorXd(2);
 
+    // ToDo: here global coordinates are used directly, which is different from radar measurements (in radarSense).
     lmarker marker = lmarker(car.position.x + noise(0.15,timestamp),
                              car.position.y + noise(0.15,timestamp+1));
     if(visualize)
