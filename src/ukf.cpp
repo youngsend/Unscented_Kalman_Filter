@@ -84,6 +84,12 @@ UKF::UKF() {
 
 UKF::~UKF() {}
 
+/**
+ * 1. If not initialized, initialize x_ using measurements and update timestamp.
+ * 2. UKF Prediction step.
+ * 3. UKF Update step for radar and normal KF Update for lidar.
+ * @param meas_package
+ */
 void UKF::ProcessMeasurement(const MeasurementPackage& meas_package) {
   /**
    * measurements.
@@ -120,12 +126,14 @@ void UKF::ProcessMeasurement(const MeasurementPackage& meas_package) {
   }
 }
 
+/**
+ * UKF Prediction step:
+ * 1. Augment state and covariance, and generate sigma points using previous state and covariance.
+ * 2. Process sigma points through ctrv motion model, get predicted sigma points after delta_t.
+ * 3. Update state and covariance using predicted sigma points.
+ * @param delta_t
+ */
 void UKF::Prediction(double delta_t) {
-  /**
-   * Modify the state vector, x_. Predict sigma points, the state,
-   * and the state covariance matrix.
-   */
-
   // 1. Augmentation initialization and sigma points generation
   MatrixXd Xsig_aug = AugmentationAndSigmaPointsGeneration(x_, P_);
 
@@ -135,16 +143,15 @@ void UKF::Prediction(double delta_t) {
   // 3. Calculate and update mean and covariance from predicted sigma points
   UKFPredict(Xsig_pred_, x_, P_);
 
-  std::cout << "After Prediction" << x_ << std::endl;
+  std::cout << "After UKF Prediction" << x_ << std::endl;
 
 }
 
+/**
+ * KF update step for linear lidar measurement model.
+ * @param meas_package
+ */
 void UKF::UpdateLidar(const MeasurementPackage& meas_package) {
-  /**
-   * about the object's position. Modify the state vector, x_, and
-   * covariance, P_.
-   * You can also calculate the lidar NIS, if desired.
-   */
   // lidar measurement model is linear, so use the normal kalman filter update step.
   VectorXd z_pred = H_lidar_ * x_;
   VectorXd y = meas_package.raw_measurements_ - z_pred;
@@ -156,15 +163,17 @@ void UKF::UpdateLidar(const MeasurementPackage& meas_package) {
   MatrixXd I = MatrixXd::Identity(n_x_, n_x_);
   P_ = (I - K * H_lidar_) * P_;
 
-  std::cout << "After Lidar update" << x_ << std::endl;
+  std::cout << "After Lidar KF Update" << x_ << std::endl;
 }
 
+/**
+ * UKF update step for nonlinear radar measurement model.
+ * 1. Convert state space sigma points to measurement space sigma points.
+ * 2. Calculate mean and covariance of sigma points in measurement space.
+ * 3. Update state and state covariance using measurement space sigma points and measurement.
+ * @param meas_package
+ */
 void UKF::UpdateRadar(const MeasurementPackage& meas_package) {
-  /**
-   * about the object's position. Modify the state vector, x_, and
-   * covariance, P_.
-   * You can also calculate the radar NIS, if desired.
-   */
   // 1. predict radar measurements from predicted sigma points
   // matrix for sigma points in measurement space
   MatrixXd Zsig = MatrixXd(n_z_radar, 2 * n_aug_ + 1);
@@ -177,7 +186,7 @@ void UKF::UpdateRadar(const MeasurementPackage& meas_package) {
   // 2. UKF update using radar measurement
   UKFUpdate(Zsig, z_pred, S, meas_package.raw_measurements_, x_, P_);
 
-  std::cout << "After UKF update" << x_ << std::endl;
+  std::cout << "After Radar UKF update" << x_ << std::endl;
 }
 
 MatrixXd UKF::AugmentationAndSigmaPointsGeneration(const VectorXd& x, const MatrixXd& P) {
